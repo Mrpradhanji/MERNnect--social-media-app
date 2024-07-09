@@ -8,28 +8,54 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import exp from 'constants';
+
 /* CONFIGURATIONS */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config();//Loads .env file contents into process.env by default
-const app = express();//Creates an Express application. 
+dotenv.config(); // Loads .env file contents into process.env by default
+
+const app = express(); // Creates an Express application.
 app.use(express.json());
 app.use(helmet());
-app.use(helmet.crossOriginResourcePolicy({policy: "cross-origin"}));
+app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
 app.use(morgan("common"));
-app.use(bodyParser.json({limit: "30mb", extended : "true"}));
-app.use(bodyParser.urlencoded({limit: "30mb", extended : "true"}));
+app.use(bodyParser.json({ limit: "30mb", extended: true }));
+app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 app.use(cors());
 app.use("/assets", express.static(path.join(__dirname, 'public/assets')));
 
-/*FILE STORAGE  package instruction default from multer github*/
+/* FILE STORAGE package instruction default from multer github */
 const storage = multer.diskStorage({
-    destination: function(req, file, cb){
+    destination: function (req, file, cb) {
         cb(null, "public/assets");
     },
-    filename: function (req, file, cb){
+    filename: function (req, file, cb) {
         cb(null, file.originalname);
     }
 });
-const upload = multer({storage });
+const upload = multer({ storage });
+
+/* MONGOOSE SETUP */
+const PORT = process.env.PORT || 6001;
+
+const connectMongoDB = async () => {
+    if (mongoose.connection.readyState >= 1) {
+        console.log("Already connected to database");
+        return;
+    }
+
+    try {
+        console.log("Connecting to MongoDB...");
+        await mongoose.connect(process.env.MONGO_URL, {
+            serverSelectionTimeoutMS: 5000,
+        });
+        console.log("Connection Successful");
+    } catch (error) {
+        console.log("Unable to connect to database");
+        console.log(error);
+    }
+};
+
+connectMongoDB().then(() => {
+    app.listen(PORT, () => console.log(`Server Port: ${PORT}`));
+}).catch((error) => console.log(`${error} did not connect`));
